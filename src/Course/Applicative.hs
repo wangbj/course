@@ -97,7 +97,7 @@ instance Applicative List where
     -> List b
   (<*>) _ Nil = Nil
   (<*>) Nil _ = Nil
-  (<*>) (g :. gs) (x :. xs) = (g x) :. (gs <*> xs)
+  (<*>) (g :. gs) xs = (map g xs) ++ (gs <*> xs)
 
 
 -- | Insert into an Optional.
