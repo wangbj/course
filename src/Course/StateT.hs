@@ -30,6 +30,8 @@ newtype StateT s f a =
       -> f (a, s)
   }
 
+mapFst g (a, b) = (g a, b)
+
 -- | Implement the `Functor` instance for @StateT s f@ given a @Functor f@.
 --
 -- >>> runStateT ((+1) <$> (pure 2) :: StateT Int List Int) 0
@@ -39,8 +41,7 @@ instance Functor f => Functor (StateT s f) where
     (a -> b)
     -> StateT s f a
     -> StateT s f b
-  (<$>) =
-    error "todo: Course.StateT (<$>)#instance (StateT s f)"
+  (<$>) g s = StateT $ \st -> (mapFst g) <$> runStateT s st
 
 -- | Implement the `Applicative` instance for @StateT s f@ given a @Monad f@.
 --
@@ -63,15 +64,15 @@ instance Monad f => Applicative (StateT s f) where
   pure ::
     a
     -> StateT s f a
-  pure =
-    error "todo: Course.StateT pure#instance (StateT s f)"
+  pure x = StateT $ \s -> pure (x, s)
   (<*>) ::
    StateT s f (a -> b)
     -> StateT s f a
     -> StateT s f b
-  (<*>) =
-    error "todo: Course.StateT (<*>)#instance (StateT s f)"
-
+  (<*>) f s = StateT $ \st1 -> runStateT f st1 >>= \(x, st2) ->
+                               runStateT s st2 >>= \(y, st3) ->
+                               return (x y, st3)
+                                     
 -- | Implement the `Monad` instance for @StateT s f@ given a @Monad f@.
 -- Make sure the state value is passed through in `bind`.
 --
@@ -85,8 +86,7 @@ instance Monad f => Monad (StateT s f) where
     (a -> StateT s f b)
     -> StateT s f a
     -> StateT s f b
-  (=<<) =
-    error "todo: Course.StateT (=<<)#instance (StateT s f)"
+  (=<<) f s = StateT $ \st1 -> runStateT s st1 >>= \(x, st2) -> runStateT (f x) st2
 
 -- | A `State'` is `StateT` specialised to the `Id` functor.
 type State' s a =
@@ -94,13 +94,12 @@ type State' s a =
 
 -- | Provide a constructor for `State'` values
 --
--- >>> runStateT (state' $ runState $ put 1) 0
+-- >>> 
 -- Id ((),1)
 state' ::
   (s -> (a, s))
   -> State' s a
-state' =
-  error "todo: Course.StateT#state'"
+state' g = StateT (Id . g)
 
 -- | Provide an unwrapper for `State'` values.
 --
@@ -110,8 +109,7 @@ runState' ::
   State' s a
   -> s
   -> (a, s)
-runState' =
-  error "todo: Course.StateT#runState'"
+runState' m = runId . runStateT m
 
 -- | Run the `StateT` seeded with `s` and retrieve the resulting state.
 execT ::
@@ -119,16 +117,14 @@ execT ::
   StateT s f a
   -> s
   -> f s
-execT =
-  error "todo: Course.StateT#execT"
+execT m = (<$>) snd . runStateT m
 
 -- | Run the `State` seeded with `s` and retrieve the resulting state.
 exec' ::
   State' s a
   -> s
   -> s
-exec' =
-  error "todo: Course.StateT#exec'"
+exec' m = runId . execT m
 
 -- | Run the `StateT` seeded with `s` and retrieve the resulting value.
 evalT ::
@@ -136,16 +132,14 @@ evalT ::
   StateT s f a
   -> s
   -> f a
-evalT =
-  error "todo: Course.StateT#evalT"
+evalT m = (<$>) fst . runStateT m
 
 -- | Run the `State` seeded with `s` and retrieve the resulting value.
 eval' ::
   State' s a
   -> s
   -> a
-eval' =
-  error "todo: Course.StateT#eval'"
+eval' m = runId . evalT m
 
 -- | A `StateT` where the state also distributes into the produced value.
 --
@@ -154,8 +148,7 @@ eval' =
 getT ::
   Monad f =>
   StateT s f s
-getT =
-  error "todo: Course.StateT#getT"
+getT = StateT $ \st -> return (st, st)
 
 -- | A `StateT` where the resulting state is seeded with the given value.
 --
@@ -168,8 +161,8 @@ putT ::
   Monad f =>
   s
   -> StateT s f ()
-putT =
-  error "todo: Course.StateT#putT"
+putT s = StateT $ \_ -> return ((), s)
+
 
 -- | Remove all duplicate elements in a `List`.
 --
