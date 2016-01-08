@@ -429,8 +429,7 @@ thisMany n = sequenceParser . replicate n
 -- True
 ageParser ::
   Parser Int
-ageParser =
-  error "todo: Course.Parser#ageParser"
+ageParser = natural
 
 -- | Write a parser for Person.firstName.
 -- /First Name: non-empty string that starts with a capital letter and is followed by zero or more lower-case letters/
@@ -444,8 +443,10 @@ ageParser =
 -- True
 firstNameParser ::
   Parser Chars
-firstNameParser =
-  error "todo: Course.Parser#firstNameParser"
+firstNameParser = do
+  c <- upper
+  cs <- list alpha
+  return (c:.cs)
 
 -- | Write a parser for Person.surname.
 --
@@ -463,8 +464,12 @@ firstNameParser =
 -- True
 surnameParser ::
   Parser Chars
-surnameParser =
-  error "todo: Course.Parser#surnameParser"
+surnameParser = do
+  c <- upper
+  cs <- sequenceParser (replicate 5 alpha)
+  ss <- list alpha
+  return (c :. (cs ++ ss))
+
 
 -- | Write a parser for Person.smoker.
 --
@@ -482,8 +487,7 @@ surnameParser =
 -- True
 smokerParser ::
   Parser Char
-smokerParser =
-  error "todo: Course.Parser#smokerParser"
+smokerParser = is 'y' ||| is 'n'
 
 -- | Write part of a parser for Person#phoneBody.
 -- This parser will only produce a string of digits, dots or hyphens.
@@ -504,8 +508,7 @@ smokerParser =
 -- Result >a123-456< ""
 phoneBodyParser ::
   Parser Chars
-phoneBodyParser =
-  error "todo: Course.Parser#phoneBodyParser"
+phoneBodyParser = list (digit ||| is '-' ||| is '.')
 
 -- | Write a parser for Person.phone.
 --
@@ -526,8 +529,11 @@ phoneBodyParser =
 -- True
 phoneParser ::
   Parser Chars
-phoneParser =
-  error "todo: Course.Parser#phoneParser"
+phoneParser = do
+  d1 <- digit
+  ds <- phoneBodyParser
+  _ <- is '#'
+  return (d1 :. ds)
 
 -- | Write a parser for Person.
 --
@@ -575,8 +581,18 @@ phoneParser =
 -- Result > rest< Person {age = 123, firstName = "Fred", surname = "Clarkson", smoker = 'y', phone = "123-456.789"}
 personParser ::
   Parser Person
-personParser =
-  error "todo: Course.Parser#personParser"
+personParser = do
+  f1 <- ageParser
+  spaces1
+  f2 <- firstNameParser
+  spaces1  
+  f3 <- surnameParser
+  spaces1
+  f4 <- smokerParser
+  spaces1
+  f5 <- phoneParser
+  return (Person f1 f2 f3 f4 f5)
+  
 
 -- Make sure all the tests pass!
 
